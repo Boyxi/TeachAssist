@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #f8f9fa;
+  color: #0f172a;
+}
+
+::selection {
+  background: rgba(230, 126, 34, 0.25);
+}
