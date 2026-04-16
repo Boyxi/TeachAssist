@@ -6,11 +6,11 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
     res.statusCode = 500;
     res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify({ error: "Missing GEMINI_API_KEY" }));
+    res.end(JSON.stringify({ error: "Missing GROQ_API_KEY" }));
     return;
   }
 
@@ -29,92 +29,44 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const models = [
-    process.env.GEMINI_MODEL,
-    "gemini-2.0-flash",
-    "gemini-2.0-flash-lite",
-    "gemini-1.5-flash-latest",
-    "gemini-1.5-flash",
-    "gemini-pro",
-  ].filter((m): m is string => Boolean(m && m.trim()));
+  const model = (process.env.GROQ_MODEL || "llama3-8b-8192").trim();
 
-  const tried = new Set<string>();
-  const uniqueModels: string[] = [];
-  for (const m of models) {
-    if (tried.has(m)) continue;
-    tried.add(m);
-    uniqueModels.push(m);
-  }
+  const upstream = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.9,
+      top_p: 0.95,
+      max_tokens: 450,
+    }),
+  });
 
-  let lastStatus = 500;
-  let lastDetails = "";
-  let chosenModel = uniqueModels[0] ?? "";
-  let data:
-    | {
-        candidates?: Array<{
-          content?: { parts?: Array<{ text?: string }> };
-        }>;
-      }
-    | null = null;
-
-  for (const model of uniqueModels) {
-    chosenModel = model;
-    const url =
-      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
-        model,
-      )}:generateContent` + `?key=${encodeURIComponent(apiKey)}`;
-
-    const upstream = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.9,
-          topP: 0.95,
-          maxOutputTokens: 450,
-        },
-      }),
-    });
-
-    if (upstream.ok) {
-      data = (await upstream.json()) as {
-        candidates?: Array<{
-          content?: { parts?: Array<{ text?: string }> };
-        }>;
-      };
-      break;
-    }
-
-    lastStatus = upstream.status;
-    lastDetails = await upstream.text();
-    const detailsLower = lastDetails.toLowerCase();
-    const looksLikeModelNotFound =
-      lastStatus === 404 ||
-      detailsLower.includes("is not found for api version") ||
-      (detailsLower.includes("not_found") && detailsLower.includes("models/"));
-
-    if (!looksLikeModelNotFound) {
-      break;
-    }
-  }
-
-  if (!data) {
-    res.statusCode = lastStatus || 502;
+  if (!upstream.ok) {
+    const details = await upstream.text();
+    res.statusCode = upstream.status;
     res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify({ error: lastDetails || "Upstream error", model: chosenModel }));
+    res.end(JSON.stringify({ error: details, model }));
     return;
   }
 
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
+  const data = (await upstream.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+
+  const text = data.choices?.[0]?.message?.content?.trim() ?? "";
   if (!text) {
     res.statusCode = 502;
     res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify({ error: "Empty response from model", model: chosenModel }));
+    res.end(JSON.stringify({ error: "Empty response from model", model }));
     return;
   }
 
   res.statusCode = 200;
   res.setHeader("Content-Type", "application/json");
-  res.end(JSON.stringify({ text, model: chosenModel }));
+  res.end(JSON.stringify({ text, model }));
 }
