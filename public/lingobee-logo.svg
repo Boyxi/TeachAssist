@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 180" role="img" aria-label="LingoBee">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1B3A6B" />
+      <stop offset="1" stop-color="#0B1F4A" />
+    </linearGradient>
+  </defs>
+  <rect width="720" height="180" fill="white" />
+  <g transform="translate(48 28)">
+    <g transform="translate(8 10)" fill="url(#g)">
+      <path d="M68 16c22 0 40 17 40 38 0 6-1 12-4 17 11 3 19 13 19 24 0 14-11 25-26 25-10 0-19-5-23-13-7 16-23 27-41 27C10 134-8 117-8 96c0-14 8-26 20-32-4-7-6-15-6-23C6 28 24 16 46 16c9 0 17 2 22 6 5-4 13-6 22-6z" opacity="0.95"/>
+      <path d="M118 22l44 0c5 0 9 4 9 9l0 18c0 5-4 9-9 9l-44 0c-5 0-9-4-9-9l0-18c0-5 4-9 9-9z" />
+      <path d="M139 18l-10 0 0-10 10 0 0 10z" />
+      <path d="M168 36c6 0 11 5 11 11 0 6-5 11-11 11-6 0-11-5-11-11 0-6 5-11 11-11z" opacity="0.85"/>
+      <path d="M172 54c7 9 9 18 7 28l-6 0c1-8-1-15-6-22l5-6z" opacity="0.85"/>
+      <path d="M129 96c16 0 31 7 41 18l-10 8c-8-9-19-14-31-14-9 0-18 3-25 8l-8-10c10-7 21-10 33-10z" opacity="0.35"/>
+      <path d="M126 128l34-28 6 8-34 28-6-8z" opacity="0.65"/>
+      <path d="M168 116l-26 22 8 10 26-22-8-10z" opacity="0.65"/>
+    </g>
+    <text x="240" y="108" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif" font-size="80" font-weight="600" fill="#1B3A6B">
+      LingoBee
+    </text>
+  </g>
+</svg>
+

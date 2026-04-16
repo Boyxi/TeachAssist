@@ -232,7 +232,14 @@ export default function App() {
     <div className="min-h-screen">
       <header className="bg-white border-b border-slate-200">
         <div className="mx-auto max-w-5xl px-4 py-4 flex items-center justify-between">
-          <div className="text-lg font-semibold text-brand-500">TeachAssist PH</div>
+          <div className="flex items-center gap-3">
+            <img
+              src="/lingobee-logo.svg"
+              alt="LingoBee"
+              className="h-9 w-auto"
+            />
+            <div className="text-lg font-semibold text-brand-500">LingoBee</div>
+          </div>
           <div className="text-xs sm:text-sm text-slate-600">
             AI Feedback Generator for ESL Teachers
           </div>
@@ -243,7 +250,7 @@ export default function App() {
         <section className="bg-brand-50">
           <div className="mx-auto max-w-5xl px-4 py-10 sm:py-14">
             <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-slate-900">
-              Generate Student Feedback in 20 Seconds
+              AI Co-pilot for ESL Teachers.
             </h1>
             <p className="mt-3 text-base sm:text-lg text-slate-700 max-w-2xl">
               Stop wasting 2 hours writing the same feedback. Let AI do it for you.
@@ -466,8 +473,8 @@ export default function App() {
             </div>
 
             <p className="text-xs text-slate-600">
-              TeachAssist PH uses AI to generate feedback templates. Always review and
-              personalize before sending to parents.
+              LingoBee uses AI to generate feedback templates. Always review and personalize
+              before sending to parents.
             </p>
           </div>
         </section>
