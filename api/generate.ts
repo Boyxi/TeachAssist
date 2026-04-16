@@ -29,44 +29,78 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const model = (process.env.GROQ_MODEL || "llama3-8b-8192").trim();
+  const models = [
+    process.env.GROQ_MODEL,
+    "llama-3.1-8b-instant",
+    "llama-3.3-70b-versatile",
+    "openai/gpt-oss-20b",
+    "openai/gpt-oss-120b",
+  ].filter((m): m is string => Boolean(m && m.trim()));
 
-  const upstream = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.9,
-      top_p: 0.95,
-      max_tokens: 450,
-    }),
-  });
+  const uniqueModels = Array.from(new Set(models));
 
-  if (!upstream.ok) {
-    const details = await upstream.text();
-    res.statusCode = upstream.status;
-    res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify({ error: details, model }));
-    return;
+  let lastStatus = 500;
+  let lastDetails = "";
+  let chosenModel = uniqueModels[0] ?? "";
+  let text = "";
+
+  for (const model of uniqueModels) {
+    chosenModel = model;
+    const upstream = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.9,
+        top_p: 0.95,
+        max_tokens: 450,
+      }),
+    });
+
+    if (!upstream.ok) {
+      lastStatus = upstream.status;
+      lastDetails = await upstream.text();
+      const detailsLower = lastDetails.toLowerCase();
+
+      const looksLikeModelIssue =
+        detailsLower.includes("model_decommissioned") ||
+        detailsLower.includes("has been decommissioned") ||
+        detailsLower.includes("invalid model") ||
+        detailsLower.includes("model not found");
+
+      if (looksLikeModelIssue) {
+        continue;
+      }
+
+      break;
+    }
+
+    const data = (await upstream.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+    };
+
+    text = data.choices?.[0]?.message?.content?.trim() ?? "";
+    if (!text) {
+      lastStatus = 502;
+      lastDetails = "Empty response from model";
+      continue;
+    }
+
+    break;
   }
 
-  const data = (await upstream.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-
-  const text = data.choices?.[0]?.message?.content?.trim() ?? "";
   if (!text) {
-    res.statusCode = 502;
+    res.statusCode = lastStatus || 502;
     res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify({ error: "Empty response from model", model }));
+    res.end(JSON.stringify({ error: lastDetails || "Upstream error", model: chosenModel }));
     return;
   }
 
   res.statusCode = 200;
   res.setHeader("Content-Type", "application/json");
-  res.end(JSON.stringify({ text, model }));
+  res.end(JSON.stringify({ text, model: chosenModel }));
 }
