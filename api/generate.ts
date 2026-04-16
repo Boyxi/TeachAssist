@@ -29,8 +29,12 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
+  const model = process.env.GEMINI_MODEL || "gemini-1.5-flash-latest";
+
   const url =
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent" +
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+      model,
+    )}:generateContent` +
     `?key=${encodeURIComponent(apiKey)}`;
 
   const upstream = await fetch(url, {
@@ -66,4 +70,3 @@ export default async function handler(req: any, res: any) {
   res.setHeader("Content-Type", "application/json");
   res.end(JSON.stringify({ text }));
 }
-
