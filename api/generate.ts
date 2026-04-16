@@ -29,44 +29,92 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const model = process.env.GEMINI_MODEL || "gemini-1.5-flash-latest";
+  const models = [
+    process.env.GEMINI_MODEL,
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-lite",
+    "gemini-1.5-flash-latest",
+    "gemini-1.5-flash",
+    "gemini-pro",
+  ].filter((m): m is string => Boolean(m && m.trim()));
 
-  const url =
-    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
-      model,
-    )}:generateContent` +
-    `?key=${encodeURIComponent(apiKey)}`;
+  const tried = new Set<string>();
+  const uniqueModels: string[] = [];
+  for (const m of models) {
+    if (tried.has(m)) continue;
+    tried.add(m);
+    uniqueModels.push(m);
+  }
 
-  const upstream = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.9,
-        topP: 0.95,
-        maxOutputTokens: 450
+  let lastStatus = 500;
+  let lastDetails = "";
+  let chosenModel = uniqueModels[0] ?? "";
+  let data:
+    | {
+        candidates?: Array<{
+          content?: { parts?: Array<{ text?: string }> };
+        }>;
       }
-    })
-  });
+    | null = null;
 
-  if (!upstream.ok) {
-    const details = await upstream.text();
-    res.statusCode = upstream.status;
+  for (const model of uniqueModels) {
+    chosenModel = model;
+    const url =
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+        model,
+      )}:generateContent` + `?key=${encodeURIComponent(apiKey)}`;
+
+    const upstream = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.9,
+          topP: 0.95,
+          maxOutputTokens: 450,
+        },
+      }),
+    });
+
+    if (upstream.ok) {
+      data = (await upstream.json()) as {
+        candidates?: Array<{
+          content?: { parts?: Array<{ text?: string }> };
+        }>;
+      };
+      break;
+    }
+
+    lastStatus = upstream.status;
+    lastDetails = await upstream.text();
+    const detailsLower = lastDetails.toLowerCase();
+    const looksLikeModelNotFound =
+      lastStatus === 404 ||
+      detailsLower.includes("is not found for api version") ||
+      (detailsLower.includes("not_found") && detailsLower.includes("models/"));
+
+    if (!looksLikeModelNotFound) {
+      break;
+    }
+  }
+
+  if (!data) {
+    res.statusCode = lastStatus || 502;
     res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify({ error: details }));
+    res.end(JSON.stringify({ error: lastDetails || "Upstream error", model: chosenModel }));
     return;
   }
 
-  const data = (await upstream.json()) as {
-    candidates?: Array<{
-      content?: { parts?: Array<{ text?: string }> };
-    }>;
-  };
-
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
+  if (!text) {
+    res.statusCode = 502;
+    res.setHeader("Content-Type", "application/json");
+    res.end(JSON.stringify({ error: "Empty response from model", model: chosenModel }));
+    return;
+  }
 
   res.statusCode = 200;
   res.setHeader("Content-Type", "application/json");
-  res.end(JSON.stringify({ text }));
+  res.end(JSON.stringify({ text, model: chosenModel }));
 }
