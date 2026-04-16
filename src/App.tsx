@@ -232,13 +232,12 @@ export default function App() {
     <div className="min-h-screen">
       <header className="bg-white border-b border-slate-200">
         <div className="mx-auto max-w-5xl px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center">
             <img
-              src="/lingobee-logo.svg"
+              src="/logo.svg"
               alt="LingoBee"
-              className="h-9 w-auto"
+              className="h-10 w-auto rounded-xl border border-slate-200 bg-white p-1 object-contain transition-all duration-200 ease-out hover:opacity-90 hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100"
             />
-            <div className="text-lg font-semibold text-brand-500">LingoBee</div>
           </div>
           <div className="text-xs sm:text-sm text-slate-600">
             AI Feedback Generator for ESL Teachers
